@@ -25,56 +25,75 @@ class Action(Enum):
 
 
 class Result(Enum):
-    WIN = 0
-    LOSS = 1
-    DRAW = 2
+    WIN = 1
+    LOSS = -1
+    DRAW = 0
+    DISQUALIFIED = -10
 
     def __str__(self) -> str:
         return self.name
 
 
-ALL_MOVES = {
-    0: {
-        0: (Action.PUSH_UP, Action.PUSH_LEFT),
-        1: (Action.PUSH_UP, Action.PUSH_LEFT, Action.PUSH_RIGHT),
-        2: (Action.PUSH_UP, Action.PUSH_LEFT, Action.PUSH_RIGHT),
-        3: (Action.PUSH_UP, Action.PUSH_LEFT, Action.PUSH_RIGHT),
-        4: (Action.PUSH_UP, Action.PUSH_RIGHT),
-    },
-    1: {
-        0: (Action.PUSH_UP, Action.PUSH_DOWN, Action.PUSH_LEFT),
-        4: (Action.PUSH_UP, Action.PUSH_DOWN, Action.PUSH_RIGHT),
-    },
-    2: {
-        0: (Action.PUSH_UP, Action.PUSH_DOWN, Action.PUSH_LEFT),
-        4: (Action.PUSH_UP, Action.PUSH_DOWN, Action.PUSH_RIGHT),
-    },
-    3: {
-        0: (Action.PUSH_UP, Action.PUSH_DOWN, Action.PUSH_LEFT),
-        4: (Action.PUSH_UP, Action.PUSH_DOWN, Action.PUSH_RIGHT),
-    },
-    4: {
-        0: (Action.PUSH_DOWN, Action.PUSH_LEFT),
-        1: (Action.PUSH_DOWN, Action.PUSH_LEFT, Action.PUSH_RIGHT),
-        2: (Action.PUSH_DOWN, Action.PUSH_LEFT, Action.PUSH_RIGHT),
-        3: (Action.PUSH_DOWN, Action.PUSH_LEFT, Action.PUSH_RIGHT),
-        4: (Action.PUSH_DOWN, Action.PUSH_RIGHT)
-    }
-}
+ALL_MOVES = [
+    (0, 0, Action.PUSH_UP),
+    (0, 0, Action.PUSH_LEFT),
+    (0, 1, Action.PUSH_UP),
+    (0, 1, Action.PUSH_LEFT),
+    (0, 1, Action.PUSH_RIGHT),
+    (0, 2, Action.PUSH_UP),
+    (0, 2, Action.PUSH_LEFT),
+    (0, 2, Action.PUSH_RIGHT),
+    (0, 3, Action.PUSH_UP),
+    (0, 3, Action.PUSH_LEFT),
+    (0, 3, Action.PUSH_RIGHT),
+    (0, 4, Action.PUSH_UP),
+    (0, 4, Action.PUSH_RIGHT),
+
+    (1, 0, Action.PUSH_UP),
+    (1, 0, Action.PUSH_DOWN),
+    (1, 0, Action.PUSH_LEFT),
+    (1, 4, Action.PUSH_UP),
+    (1, 4, Action.PUSH_DOWN),
+    (1, 4, Action.PUSH_RIGHT),
+
+    (2, 0, Action.PUSH_UP),
+    (2, 0, Action.PUSH_DOWN),
+    (2, 0, Action.PUSH_LEFT),
+    (2, 4, Action.PUSH_UP),
+    (2, 4, Action.PUSH_DOWN),
+    (2, 4, Action.PUSH_RIGHT),
+
+    (3, 0, Action.PUSH_UP),
+    (3, 0, Action.PUSH_DOWN),
+    (3, 0, Action.PUSH_LEFT),
+    (3, 4, Action.PUSH_UP),
+    (3, 4, Action.PUSH_DOWN),
+    (3, 4, Action.PUSH_RIGHT),
+
+    (4, 0, Action.PUSH_DOWN),
+    (4, 0, Action.PUSH_LEFT),
+    (4, 1, Action.PUSH_DOWN),
+    (4, 1, Action.PUSH_LEFT),
+    (4, 1, Action.PUSH_RIGHT),
+    (4, 2, Action.PUSH_DOWN),
+    (4, 2, Action.PUSH_LEFT),
+    (4, 2, Action.PUSH_RIGHT),
+    (4, 3, Action.PUSH_DOWN),
+    (4, 3, Action.PUSH_LEFT),
+    (4, 3, Action.PUSH_RIGHT),
+    (4, 4, Action.PUSH_DOWN),
+    (4, 4, Action.PUSH_RIGHT)
+]
 
 
 def get_possible_moves(board, mark: Mark) -> List[Tuple[int, int, Action]]:
-    possible_moves = []
-    for row, col_to_actions in ALL_MOVES.items():
-        for col, actions in col_to_actions.items():
-            if board[row][col] in (mark, Mark.EMPTY):
-                possible_moves.extend((row, col, a) for a in actions)
-    return possible_moves
+    return [(row, col, action) for row, col, action in ALL_MOVES
+            if board[row][col] in (mark, Mark.EMPTY)]
 
 
 def is_valid_move(board, mark: Mark, row: int, col: int, action: Action) -> bool:
     if board[row][col] in (mark, Mark.EMPTY):
-        return action in ALL_MOVES.get(row, {}).get(col, ())
+        return (row, col, action) in ALL_MOVES
     else:
         return False
 

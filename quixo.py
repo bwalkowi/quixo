@@ -20,7 +20,7 @@ def play(player1, player2, verbose: bool = True, limit: int = 100) -> None:
             if not is_valid_move(board, player.mark, row, col, action):
                 print(f'{colored("[ERROR]", "red")} Player {player.mark} '
                       f'disqualified for invalid move: {row}, {col}, {action}')
-                results[i] = Result.LOSS
+                results[i] = Result.DISQUALIFIED
                 results[1-i] = Result.WIN
                 game_end = True
                 break
