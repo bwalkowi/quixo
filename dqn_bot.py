@@ -31,13 +31,15 @@ def build_dqn(learning_rate: float = 0.001) -> Sequential:
     return model
 
 
-def encode_board(board, as_batch: bool = True):
-    os = [cell is Mark.O for row in board for cell in row]
-    xs = [cell is Mark.X for row in board for cell in row]
+def encode_board(board, mark: Mark, as_batch: bool = True) -> np.ndarray:
+    opponent_mark = mark.opposite_mark()
+
+    p1 = [cell is mark for row in board for cell in row]
+    p2 = [cell is opponent_mark for row in board for cell in row]
     if as_batch:
-        return np.array([os + xs], dtype=np.int32)
+        return np.array([p1 + p2], dtype=np.int32)
     else:
-        return np.array(os + xs, dtype=np.int32)
+        return np.array(p1 + p2, dtype=np.int32)
 
 
 class Player:
@@ -64,13 +66,14 @@ class Player:
             reward = result.value
             last_state, last_action = self.buffer[-1]
 
-            batch = [encode_board(last_state, as_batch=False)]
+            batch = [encode_board(last_state, self.mark, as_batch=False)]
             target_qs = [(last_action, reward)]
 
             if result is not Result.DISQUALIFIED:
                 for state, action in self.buffer[-2::-1]:
                     reward *= self.gamma
-                    batch.append(encode_board(state, as_batch=False))
+                    batch.append(encode_board(state, self.mark,
+                                              as_batch=False))
                     target_qs.append((action, reward))
 
             batch = np.array(batch)
@@ -80,6 +83,7 @@ class Player:
 
             self.model.fit(batch, targets, epochs=1, verbose=0)
 
+            self.buffer = []
             if self.epsilon > self.epsilon_min:
                 self.epsilon *= self.epsilon_decay
 
@@ -94,14 +98,14 @@ class Player:
                     chosen_move = rand.choice(possible_moves)
                     encoded_move = ALL_MOVES.index(chosen_move)
             else:
-                predictions = self.model.predict(encode_board(board))
+                predictions = self.model.predict(encode_board(board, self.mark))
                 encoded_move = np.argmax(predictions[0])
                 chosen_move = ALL_MOVES[encoded_move]
 
             self.buffer.append((board, encoded_move))
             return chosen_move
         else:
-            predictions = self.model.predict(encode_board(board))
+            predictions = self.model.predict(encode_board(board, self.mark))
             return ALL_MOVES[np.argmax(predictions[0])]
 
     def save(self, file_path: str) -> None:

@@ -28,7 +28,7 @@ class Result(Enum):
     WIN = 10
     LOSS = -10
     DRAW = 0
-    DISQUALIFIED = -100
+    DISQUALIFIED = -1000
 
     def __str__(self) -> str:
         return self.name
