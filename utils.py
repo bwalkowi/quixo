@@ -25,10 +25,10 @@ class Action(Enum):
 
 
 class Result(Enum):
-    WIN = 1
-    LOSS = -1
+    WIN = 10
+    LOSS = -10
     DRAW = 0
-    DISQUALIFIED = -10
+    DISQUALIFIED = -100
 
     def __str__(self) -> str:
         return self.name

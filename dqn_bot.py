@@ -15,20 +15,26 @@ ACTION_SIZE = 44
 
 def build_dqn(learning_rate: float = 0.001) -> Sequential:
     model = Sequential([
-        Dense(128, input_dim=STATE_SIZE, activation='relu'),
-        Dense(128, activation='relu'),
-        Dense(64, activation='relu'),
-        Dense(ACTION_SIZE, activation='linear'),
+        Dense(128, input_dim=STATE_SIZE,
+              activation='relu',
+              kernel_initializer='zeros'),
+        Dense(128, activation='relu',
+              kernel_initializer='zeros'),
+        Dense(64, activation='relu',
+              kernel_initializer='zeros'),
+        Dense(ACTION_SIZE,
+              activation='linear',
+              kernel_initializer='zeros'),
     ])
     model.compile(optimizer=SGD(lr=learning_rate), loss='mse')
 
     return model
 
 
-def encode_board(board, batch: bool = True):
+def encode_board(board, as_batch: bool = True):
     os = [cell is Mark.O for row in board for cell in row]
     xs = [cell is Mark.X for row in board for cell in row]
-    if batch:
+    if as_batch:
         return np.array([os + xs], dtype=np.int32)
     else:
         return np.array(os + xs, dtype=np.int32)
@@ -58,13 +64,13 @@ class Player:
             reward = result.value
             last_state, last_action = self.buffer[-1]
 
-            batch = [encode_board(last_state, batch=False)]
+            batch = [encode_board(last_state, as_batch=False)]
             target_qs = [(last_action, reward)]
 
             if result is not Result.DISQUALIFIED:
                 for state, action in self.buffer[-2::-1]:
                     reward *= self.gamma
-                    batch.append(encode_board(state, batch=False))
+                    batch.append(encode_board(state, as_batch=False))
                     target_qs.append((action, reward))
 
             batch = np.array(batch)
