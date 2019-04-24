@@ -105,6 +105,11 @@ def get_possible_moves(board, mark: Mark) -> List[Tuple[int, int, Action]]:
             if board[row][col] in (mark, Mark.EMPTY)]
 
 
+def get_encoded_possible_moves(board, mark: Mark) -> List[int]:
+    return [i for i, (row, col, _) in enumerate(ALL_MOVES)
+            if board[row][col] in (mark, Mark.EMPTY)]
+
+
 def is_valid_move(board, mark: Mark, row: int, col: int, action: Action) -> bool:
     if board[row][col] in (mark, Mark.EMPTY):
         return (row, col, action) in ALL_MOVES

@@ -25,22 +25,26 @@ def train(agent_cls: str,
         from ddqn_bot import Player as DQNPlayer
 
     agent = DQNPlayer(Mark.O,
-                      train=True,
+                      learning=True,
                       gamma=gamma,
                       epsilon=epsilon,
                       epsilon_min=epsilon_min,
                       epsilon_decay=epsilon_decay,
-                      learning_rate=learning_rate)
+                      learning_rate=learning_rate,
+                      weights_file=None)
+
     if src_path and os.path.isfile(src_path):
         agent.load(src_path)
 
-    for p in range(0, plays // 2):
+    for p in range(1, plays // 2):
         _, result, rounds = play(rand_player, agent, verbose=False)
+        agent.train(result)
         print(f'episode: {p}/{plays}, '
               f'score: {result.value}, '
               f'rounds: {rounds}')
-    for p in range(plays // 2, plays):
+    for p in range(plays // 2, plays + 1):
         result, _, rounds = play(agent, rand_player, verbose=False)
+        agent.train(result)
         print(f'episode: {p}/{plays}, '
               f'score: {result.value}, '
               f'rounds: {rounds}')
