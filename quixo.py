@@ -11,7 +11,7 @@ from utils import Mark, Result, is_valid_move, apply_move, get_winners
 
 def play(player1, player2, *,
          verbose: bool = True,
-         limit: int = 100) -> Tuple[Result, Result, int]:
+         limit: int = 500) -> Tuple[Result, Result, int]:
     round_no = 0
     game_end = False
     players = (player1, player2)
@@ -54,10 +54,10 @@ def play(player1, player2, *,
 
         round_no += 1
 
-    verbose and print('\nGame ends with results:')
-    for player, result in zip(players, results):
-        verbose and print(f'\tPlayer {player.mark} {result}')
-        player.end_game(result)
+    if verbose:
+        print('\nGame ends with results:')
+        for player, result in zip(players, results):
+            print(f'\tPlayer {player.mark} {result}')
 
     p1_result, p2_result = results
     return p1_result, p2_result, round_no

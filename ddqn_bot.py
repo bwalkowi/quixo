@@ -1,30 +1,31 @@
+import os
 import random as rand
-from typing import Tuple
 from collections import deque
+from typing import Tuple, Optional
 
 import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import SGD
 
-from utils import Mark, Action, Result, ALL_MOVES, get_possible_moves
+from utils import (Mark, Action, Result,
+                   ALL_MOVES, get_possible_moves,
+                   STATE_SPACE_SIZE, encode_board)
 
 
-STATE_SIZE = 50
-ACTION_SIZE = 44
 BATCH_SIZE = 32
 
 
 def build_dqn(learning_rate: float = 0.001) -> Sequential:
     model = Sequential([
-        Dense(128, input_dim=STATE_SIZE,
+        Dense(128, input_dim=STATE_SPACE_SIZE,
               activation='relu',
               kernel_initializer='zeros'),
         Dense(128, activation='relu',
               kernel_initializer='zeros'),
         Dense(64, activation='relu',
               kernel_initializer='zeros'),
-        Dense(ACTION_SIZE,
+        Dense(len(ALL_MOVES),
               activation='linear',
               kernel_initializer='zeros'),
     ])
@@ -33,25 +34,19 @@ def build_dqn(learning_rate: float = 0.001) -> Sequential:
     return model
 
 
-def encode_board(board, as_batch: bool = True):
-    os = [cell is Mark.O for row in board for cell in row]
-    xs = [cell is Mark.X for row in board for cell in row]
-    if as_batch:
-        return np.array([os + xs], dtype=np.int32)
-    else:
-        return np.array(os + xs, dtype=np.int32)
-
-
 class Player:
+    rounds_played: int = 0
+
     def __init__(self, mark: Mark, *,
-                 train: bool = False,
+                 learning: bool = False,
                  gamma: float = 0.95,
                  epsilon: float = 1.0,
                  epsilon_min: float = 0.01,
                  epsilon_decay: float = 0.99,
-                 learning_rate: float = 0.001) -> None:
+                 learning_rate: float = 0.001,
+                 weights_file: Optional[str] = './ddqnw.h5') -> None:
         self.mark = mark
-        self.train = train
+        self.learning = learning
 
         self.gamma = gamma
         self.epsilon = epsilon
@@ -64,35 +59,13 @@ class Player:
 
         self.model = build_dqn(learning_rate)
         self.target_model = build_dqn(learning_rate)
+
+        if weights_file and os.path.isfile(weights_file):
+            self.load(weights_file)
         self.update_target_model()
 
-    def end_game(self, result: Result) -> None:
-        self.memory.append((self.prev_state, self.prev_action,
-                            result.value, None, True))
-
-        plays = rand.sample(self.memory, BATCH_SIZE)
-        batch = np.array([encode_board(x[0], as_batch=False) for x in plays])
-        targets = self.model.predict(batch)
-
-        batch2 = np.array([encode_board(x[3], as_batch=False)
-                           for x in plays if x[3]])
-        targets2 = self.target_model.predict(batch2)
-
-        j = 0
-        for i, (_, action, reward, _, done) in enumerate(plays):
-            if done:
-                targets[i][action] = reward
-            else:
-                targets[i][action] = reward + self.gamma * np.amax(targets2[j])
-                j += 1
-
-        self.model.fit(batch, targets, epochs=1, verbose=0)
-
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
-
     def move(self, board) -> Tuple[int, int, Action]:
-        if self.train:
+        if self.learning:
             if self.prev_state:
                 self.memory.append((self.prev_state,
                                     self.prev_action,
@@ -106,7 +79,7 @@ class Player:
                     chosen_move = rand.choice(possible_moves)
                     encoded_move = ALL_MOVES.index(chosen_move)
             else:
-                predictions = self.model.predict(encode_board(board))
+                predictions = self.model.predict(encode_board(board, self.mark))
                 encoded_move = np.argmax(predictions[0])
                 chosen_move = ALL_MOVES[encoded_move]
 
@@ -114,8 +87,41 @@ class Player:
             self.prev_action = encoded_move
             return chosen_move
         else:
-            predictions = self.model.predict(encode_board(board))
+            predictions = self.model.predict(encode_board(board, self.mark))
             return ALL_MOVES[np.argmax(predictions[0])]
+
+    def train(self, result: Result) -> None:
+        self.memory.append((self.prev_state, self.prev_action,
+                            result.value, None, True))
+        self.prev_state = None
+        self.prev_action = None
+        self.rounds_played += 1
+
+        if len(self.memory) < BATCH_SIZE or self.rounds_played % 4 != 0:
+            return
+
+        selected_plays = rand.sample(self.memory, BATCH_SIZE)
+        batch = np.array([encode_board(x[0], self.mark, as_batch=False)
+                          for x in selected_plays])
+        targets = self.model.predict(batch)
+
+        batch2 = np.array([encode_board(x[3], self.mark, as_batch=False)
+                           for x in selected_plays if x[3]])
+        targets2 = self.target_model.predict(batch2)
+
+        j = 0
+        for i, (_, action, reward, _, done) in enumerate(selected_plays):
+            if done:
+                targets[i][action] = reward
+            else:
+                targets[i][action] = reward + self.gamma * np.amax(targets2[j])
+                j += 1
+
+        self.model.fit(batch, targets, epochs=1, verbose=0)
+        self.update_target_model()
+
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
 
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())

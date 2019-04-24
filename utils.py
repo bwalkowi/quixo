@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Set, List, Tuple
 
+import numpy as np
+
 
 class Mark(Enum):
     EMPTY = ' '
@@ -84,6 +86,18 @@ ALL_MOVES = [
     (4, 4, Action.PUSH_DOWN),
     (4, 4, Action.PUSH_RIGHT)
 ]
+STATE_SPACE_SIZE = 50
+
+
+def encode_board(board, mark: Mark, as_batch: bool = True) -> np.ndarray:
+    opponent_mark = mark.opposite_mark()
+
+    p1 = [cell is mark for row in board for cell in row]
+    p2 = [cell is opponent_mark for row in board for cell in row]
+    if as_batch:
+        return np.array([p1 + p2], dtype=np.int32)
+    else:
+        return np.array(p1 + p2, dtype=np.int32)
 
 
 def get_possible_moves(board, mark: Mark) -> List[Tuple[int, int, Action]]:
