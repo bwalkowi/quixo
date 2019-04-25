@@ -5,7 +5,7 @@ from typing import Tuple, Optional
 import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense
-from keras.optimizers import SGD
+from keras.optimizers import Adam
 
 from utils import (Mark, Action, Result, ALL_MOVES,
                    get_possible_moves, get_encoded_possible_moves,
@@ -14,7 +14,7 @@ from utils import (Mark, Action, Result, ALL_MOVES,
 
 class Player:
     def __init__(self, mark: Mark, *,
-                 learning: bool = False,
+                 training: bool = False,
                  gamma: float = 0.95,
                  epsilon: float = 1.0,
                  epsilon_min: float = 0.01,
@@ -22,7 +22,7 @@ class Player:
                  learning_rate: float = 0.001,
                  weights_file: Optional[str] = './dqnw.h5') -> None:
         self.mark = mark
-        self.learning = learning
+        self.training = training
 
         self.gamma = gamma
         self.epsilon = epsilon
@@ -30,7 +30,6 @@ class Player:
         self.epsilon_decay = epsilon_decay
 
         self.buffer = []
-        self.invalid_plays = []
         self.model = build_dqn(learning_rate)
 
         if weights_file and os.path.isfile(weights_file):
@@ -39,7 +38,7 @@ class Player:
     def move(self, board) -> Tuple[int, int, Action]:
         mark = self.mark
 
-        if self.learning:
+        if self.training:
             encoded_move = 0
             chosen_move = ALL_MOVES[encoded_move]
 
@@ -51,12 +50,8 @@ class Player:
             else:
                 predictions = self.model.predict(encode_board(board, mark))[0]
                 encoded_possible_moves = get_encoded_possible_moves(board, mark)
-                for _, encoded_move in sort_predictions(predictions):
-                    if encoded_move in encoded_possible_moves:
-                        break
-                    else:
-                        self.invalid_plays.append((board, encoded_move))
-
+                encoded_move = next((x for _, x in sort_predictions(predictions)
+                                     if x in encoded_possible_moves), 0)
                 chosen_move = ALL_MOVES[encoded_move]
 
             self.buffer.append((board, encoded_move))
@@ -64,18 +59,15 @@ class Player:
         else:
             predictions = self.model.predict(encode_board(board, mark))[0]
             encoded_possible_moves = get_encoded_possible_moves(board, mark)
-            for _, encoded_move in sort_predictions(predictions):
-                if encoded_move in encoded_possible_moves:
-                    return ALL_MOVES[encoded_move]
-            return ALL_MOVES[0]
+            encoded_move = next((x for _, x in sort_predictions(predictions)
+                                 if x in encoded_possible_moves), 0)
+            return ALL_MOVES[encoded_move]
 
     def train(self, result: Result) -> None:
-        batch = [encode_board(board, self.mark, as_batch=False)
-                 for board, _ in self.invalid_plays]
-        target_qs = [(action, Result.DISQUALIFIED.value)
-                     for _, action in self.invalid_plays]
-
+        batch = []
+        target_qs = []
         reward = result.value
+
         if result is Result.DISQUALIFIED:
             last_board, last_action = self.buffer[-1]
             batch.append(encode_board(last_board, self.mark, as_batch=False))
@@ -94,7 +86,6 @@ class Player:
         self.model.fit(batch, targets, epochs=1, verbose=0)
 
         self.buffer = []
-        self.invalid_plays = []
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
@@ -107,18 +98,12 @@ class Player:
 
 def build_dqn(learning_rate: float = 0.001) -> Sequential:
     model = Sequential([
-        Dense(128, input_dim=STATE_SPACE_SIZE,
-              activation='relu',
-              kernel_initializer='zeros'),
-        Dense(128, activation='relu',
-              kernel_initializer='zeros'),
-        Dense(64, activation='relu',
-              kernel_initializer='zeros'),
-        Dense(len(ALL_MOVES),
-              activation='linear',
-              kernel_initializer='zeros'),
+        Dense(128, input_dim=STATE_SPACE_SIZE, activation='relu'),
+        Dense(128, activation='relu'),
+        Dense(64, activation='relu'),
+        Dense(len(ALL_MOVES), activation='linear'),
     ])
-    model.compile(optimizer=SGD(lr=learning_rate), loss='mse')
+    model.compile(optimizer=Adam(lr=learning_rate), loss='mse')
 
     return model
 

@@ -2,12 +2,8 @@
 
 Experimentation with Deep Reinforcement learning on the example of teaching how to play [Quixo](https://boardgamegeek.com/thread/451817/quixo-detailed-review).
 
-Two approaches will be tested:
-* dqn (Deep Q Network)
-* ddqn (Double Deep Q Network).
-
-First they will learn how to play by playing against rand_bot (agent playing random but valid moves). 
-Then teaching will continue by playing against their older versions.
+First agent will learn how to play by playing against rand_bot (agent playing random but valid moves). 
+Then teaching will continue by playing against his older versions.
 
 After the training is completed, the effectiveness of the results will be checked through the tournament against minimax_bot 
 (bot using [minimax](https://en.wikipedia.org/wiki/Minimax) with some improvements like 

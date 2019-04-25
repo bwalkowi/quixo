@@ -28,9 +28,9 @@ class Action(Enum):
 
 class Result(Enum):
     WIN = 10
-    LOSS = -10
+    LOSS = -1
     DRAW = 0
-    DISQUALIFIED = -1000
+    DISQUALIFIED = -10
 
     def __str__(self) -> str:
         return self.name
@@ -108,6 +108,12 @@ def get_possible_moves(board, mark: Mark) -> List[Tuple[int, int, Action]]:
 def get_encoded_possible_moves(board, mark: Mark) -> List[int]:
     return [i for i, (row, col, _) in enumerate(ALL_MOVES)
             if board[row][col] in (mark, Mark.EMPTY)]
+
+
+def get_encoded_impossible_moves(board, mark: Mark) -> List[int]:
+    opposite_mark = mark.opposite_mark()
+    return [i for i, (row, col, _) in enumerate(ALL_MOVES)
+            if board[row][col] is opposite_mark]
 
 
 def is_valid_move(board, mark: Mark, row: int, col: int, action: Action) -> bool:
