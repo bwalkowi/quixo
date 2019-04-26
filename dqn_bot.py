@@ -7,8 +7,8 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
 
-from utils import (Mark, Action, Result, ALL_MOVES,
-                   get_possible_moves, get_encoded_possible_moves,
+from utils import (Mark, Action, Result, ALL_MOVES, get_possible_moves,
+                   get_encoded_possible_moves, get_encoded_impossible_moves,
                    STATE_SPACE_SIZE, encode_board)
 
 
@@ -20,7 +20,7 @@ class Player:
                  epsilon_min: float = 0.01,
                  epsilon_decay: float = 0.99,
                  learning_rate: float = 0.001,
-                 weights_file: Optional[str] = './dqnw.h5') -> None:
+                 weights_file: Optional[str] = './qwe.h5') -> None:
         self.mark = mark
         self.training = training
 
@@ -65,23 +65,33 @@ class Player:
 
     def train(self, result: Result) -> None:
         batch = []
-        target_qs = []
-        reward = result.value
+        moves = []
+        qs = []
 
+        reward = result.value
         if result is Result.DISQUALIFIED:
-            last_board, last_action = self.buffer[-1]
+            last_board, last_move = self.buffer[-1]
             batch.append(encode_board(last_board, self.mark, as_batch=False))
-            target_qs.append((last_action, reward))
+            moves.append(last_move)
+            qs.append(reward)
         else:
-            for state, action in self.buffer[::-1]:
-                batch.append(encode_board(state, self.mark, as_batch=False))
-                target_qs.append((action, reward))
+            for board, encoded_move in self.buffer[::-1]:
+                batch.append(encode_board(board, self.mark, as_batch=False))
+
+                state_moves = get_encoded_impossible_moves(board, self.mark)
+                state_moves.append(encoded_move)
+                moves.append(state_moves)
+
+                state_qs = [Result.DISQUALIFIED.value] * len(state_moves)
+                state_qs[-1] = reward
+                qs.append(state_qs)
+
                 reward *= self.gamma
 
         batch = np.array(batch)
         targets = self.model.predict(batch)
-        for i, (action, q) in enumerate(target_qs):
-            targets[i, action] = q
+        for i, (state_moves, state_qs) in enumerate(zip(moves, qs)):
+            targets[i, state_moves] = state_qs
 
         self.model.fit(batch, targets, epochs=1, verbose=0)
 
