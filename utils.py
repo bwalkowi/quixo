@@ -86,6 +86,7 @@ ALL_MOVES = [
     (4, 4, Action.PUSH_DOWN),
     (4, 4, Action.PUSH_RIGHT)
 ]
+MOVE_SPACE_SIZE = len(ALL_MOVES)
 STATE_SPACE_SIZE = 50
 
 
@@ -110,7 +111,7 @@ def get_encoded_possible_moves(board, mark: Mark) -> List[int]:
             if board[row][col] in (mark, Mark.EMPTY)]
 
 
-def get_encoded_impossible_moves(board, mark: Mark) -> List[int]:
+def get_encoded_invalid_moves(board, mark: Mark) -> List[int]:
     opposite_mark = mark.opposite_mark()
     return [i for i, (row, col, _) in enumerate(ALL_MOVES)
             if board[row][col] is opposite_mark]
