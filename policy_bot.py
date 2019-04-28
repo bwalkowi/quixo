@@ -8,11 +8,8 @@ from keras.layers import Input, Dense
 from keras.optimizers import Adam
 
 from utils import (Mark, Action, Result, ALL_MOVES,
-                   get_encoded_impossible_moves,
-                   STATE_SPACE_SIZE, encode_board)
-
-
-MOVE_SPACE_SIZE = len(ALL_MOVES)
+                   get_encoded_invalid_moves,
+                   STATE_SPACE_SIZE, MOVE_SPACE_SIZE, encode_board)
 
 
 class Player:
@@ -20,7 +17,7 @@ class Player:
                  gamma: float = 0.99,
                  training: bool = False,
                  learning_rate: float = 0.001,
-                 weights_file: Optional[str] = './policy.h5') -> None:
+                 weights_file: Optional[str] = './weights/policy.h5') -> None:
         self.mark = mark
         self.gamma = gamma
         self.training = training
@@ -34,10 +31,9 @@ class Player:
 
     def move(self, board) -> Tuple[int, int, Action]:
         board_hash = encode_board(board, self.mark)
-        predictions = self.model.predict(board_hash)[0]
-        invalid_moves = get_encoded_impossible_moves(board, self.mark)
 
-        predictions[invalid_moves] = 0.0
+        predictions = self.model.predict(board_hash)[0]
+        predictions[get_encoded_invalid_moves(board, self.mark)] = 0.0
         norm = np.linalg.norm(predictions, ord=1)
         if norm == 0:
             predictions[0] = 1.0
@@ -53,16 +49,12 @@ class Player:
             return ALL_MOVES[np.argmax(predictions)]
 
     def train(self, result: Result) -> None:
-        # import pdb; pdb.set_trace()
         moves = self.moves.flatten().astype(int)
         moves_one_hot = np.zeros((len(moves), MOVE_SPACE_SIZE))
         moves_one_hot[np.arange(len(moves)), moves] = 1
 
         rewards = np.array([result.value * self.gamma**i
                             for i in reversed(range(len(moves)))])
-        # rewards -= (rewards.mean() / rewards.std())
-        # rewards /= rewards.std()
-
         self.model.train([self.boards, moves_one_hot, rewards])
 
         self.boards = np.empty(0).reshape(0, STATE_SPACE_SIZE)

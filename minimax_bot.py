@@ -3,17 +3,17 @@ from enum import Enum
 from collections import OrderedDict
 from typing import NamedTuple, Tuple, Optional
 
-from utils import (Mark, Action, get_possible_moves, apply_move, get_winners)
+from utils import Mark, Action, get_possible_moves, apply_move, get_winners
 
 
 MAX_SCORE = 1000
 
 
 class Player:
-    max_depth: int = 5
 
-    def __init__(self, mark: Mark) -> None:
+    def __init__(self, mark: Mark, max_depth: int = 5) -> None:
         self.mark = mark
+        self.max_depth = max_depth
 
     def move(self, board) -> Tuple[int, int, Action]:
         for depth in range(1, self.max_depth, 2):

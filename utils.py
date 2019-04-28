@@ -27,7 +27,7 @@ class Action(Enum):
 
 
 class Result(Enum):
-    WIN = 5
+    WIN = 1
     LOSS = -1
     DRAW = 0
     DISQUALIFIED = 0

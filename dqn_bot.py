@@ -17,7 +17,7 @@ class Player:
                  training: bool = False,
                  gamma: float = 0.95,
                  epsilon: float = 1.0,
-                 epsilon_min: float = 0.01,
+                 epsilon_min: float = 0.1,
                  epsilon_decay: float = 0.99,
                  learning_rate: float = 0.001,
                  weights_file: Optional[str] = './weights/dqn.h5') -> None:
