@@ -8,7 +8,7 @@ from numpy.ma import masked_array
 import tensorflow as tf
 from keras import backend as K
 from keras.models import Model
-from keras.layers import Input, Dense, Lambda, Add
+from keras.layers import Input, Dense, Lambda
 from keras.optimizers import RMSprop
 
 from utils import (Mark, Action, Result, ALL_MOVES,
