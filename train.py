@@ -2,7 +2,7 @@ import argparse
 from typing import Optional
 
 from quixo import play
-from utils import Mark, Result
+from utils import Mark
 
 
 def train(agent: str, src_path: Optional[str], dst_path: Optional[str]) -> None:
@@ -10,6 +10,8 @@ def train(agent: str, src_path: Optional[str], dst_path: Optional[str]) -> None:
         from dqn_bot import Player
     elif agent == 'ddqn':
         from ddqn_bot import Player
+    elif agent == 'dddqn_per':
+        from dddqn_per_bot import Player
     else:
         from dddqn_bot import Player
 
@@ -42,7 +44,8 @@ def train(agent: str, src_path: Optional[str], dst_path: Optional[str]) -> None:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-a', '--agent',
-                        choices=('dqn', 'ddqn', 'dddqn'), default='dqn',
+                        choices=('dqn', 'ddqn', 'dddqn', 'dddqn_per'),
+                        default='dqn',
                         help='Agent type to teach.')
     parser.add_argument('-s', '--src',
                         help='File containing weights to load.')

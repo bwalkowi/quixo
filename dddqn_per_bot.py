@@ -7,8 +7,9 @@ from numpy.ma import masked_array
 import tensorflow as tf
 from keras import backend as K
 from keras.models import Model
-from keras.layers import Input, Dense, Lambda
+from keras.utils import plot_model
 from keras.optimizers import RMSprop
+from keras.layers import Input, Dense, Lambda
 
 from utils import (Mark, Action, Result, ALL_MOVES,
                    get_possible_moves, get_encoded_possible_moves,
@@ -58,7 +59,6 @@ class Player:
                 move_hash = 0
                 chosen_move = ALL_MOVES[move_hash]
         else:
-            # import pdb; pdb.set_trace()
             predictions = self.model.predict(encode_board(board, self.mark))[0]
             possible_moves_hashes = get_encoded_possible_moves(board, self.mark)
             move_hash = next((x for _, x in sort_predictions(predictions)
@@ -93,10 +93,10 @@ class Player:
             old_q_targets = q_targets[rows, moves]
             new_q_targets = rewards + self.gamma * next_qs_values * (1 - done)
 
-            errors = weights * (old_q_targets - new_q_targets) ** 2
-
             q_targets[rows, moves] = new_q_targets
             self.model.fit(states, q_targets, epochs=1, verbose=0)
+
+            errors = np.abs(old_q_targets - new_q_targets)
             self.memory.batch_update(indices, errors)
 
     def memorize(self, board, move_hash, reward, done):
@@ -166,6 +166,8 @@ class Memory:
         weights = (self.entries_num * probabilities[indices]) ** (-self.beta)
         weights /= weights.max()
 
+        self.beta = np.min([1.0, self.beta + self.beta_increment_per_sampling])
+
         return states, moves, rewards, next_states, masks, done, indices, weights
 
     def batch_update(self, indices: np.ndarray, errors: np.ndarray) -> None:
@@ -185,17 +187,19 @@ class Memory:
 
 
 def build_model(learning_rate: float = 0.001) -> Model:
-    model_input = Input(shape=(STATE_SPACE_SIZE,))
+    model_input = Input(shape=(STATE_SPACE_SIZE,), name='input')
 
     hidden_layer = model_input
-    for layer_size in (128, 128):
-        hidden_layer = Dense(layer_size, activation='relu')(hidden_layer)
+    for i, layer_size in enumerate((128, 128)):
+        hidden_layer = Dense(layer_size,
+                             activation='relu',
+                             name=f'hidden_{i}')(hidden_layer)
 
-    value_fc = Dense(128, activation='relu')(hidden_layer)
-    value = Dense(1)(value_fc)
+    value_fc = Dense(128, activation='relu', name='value_fc')(hidden_layer)
+    value = Dense(1, name='value')(value_fc)
 
-    advantage_fc = Dense(128, activation='relu')(hidden_layer)
-    advantage = Dense(MOVE_SPACE_SIZE)(advantage_fc)
+    advantage_fc = Dense(128, activation='relu', name='advantage_fc')(hidden_layer)
+    advantage = Dense(MOVE_SPACE_SIZE, name='advantage')(advantage_fc)
 
     def aggregate(x):
         val, adv = x
@@ -207,6 +211,9 @@ def build_model(learning_rate: float = 0.001) -> Model:
     model = Model(input=model_input, output=model_output)
     model.compile(optimizer=RMSprop(lr=learning_rate),
                   loss=tf.losses.huber_loss)
+    # plot_model(model, to_file='model.png')
+    # print(model.summary())
+
     return model
 
 
