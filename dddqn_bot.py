@@ -8,6 +8,7 @@ from numpy.ma import masked_array
 import tensorflow as tf
 from keras import backend as K
 from keras.models import Model
+from keras.utils import plot_model
 from keras.layers import Input, Dense, Lambda
 from keras.optimizers import RMSprop
 
@@ -45,6 +46,10 @@ class Player:
 
         self.model = build_model(learning_rate)
         self.target_model = build_model(learning_rate)
+
+        # plot_model(self.model, to_file='dddqn_model.png',
+        #            show_shapes=True, show_layer_names=True)
+        # print(self.model.summary())
 
         if weights_file and os.path.isfile(weights_file):
             self.load(weights_file)

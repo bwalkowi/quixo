@@ -6,6 +6,7 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
+from keras.utils import plot_model
 
 from utils import (Mark, Action, Result, ALL_MOVES, get_possible_moves,
                    get_encoded_possible_moves, get_encoded_invalid_moves,
@@ -30,7 +31,11 @@ class Player:
         self.epsilon_decay = epsilon_decay
 
         self.buffer = []
-        self.model = build_dqn(learning_rate)
+        self.model = build_model(learning_rate)
+
+        # plot_model(self.model, to_file='dqn_model.png',
+        #            show_shapes=True, show_layer_names=True)
+        # print(self.model.summary())
 
         if weights_file and os.path.isfile(weights_file):
             self.load(weights_file)
@@ -103,7 +108,7 @@ class Player:
         self.model.load_weights(file_path)
 
 
-def build_dqn(learning_rate: float = 0.001) -> Sequential:
+def build_model(learning_rate: float = 0.001) -> Sequential:
     model = Sequential([
         Dense(128, input_dim=STATE_SPACE_SIZE, activation='relu'),
         Dense(128, activation='relu'),
