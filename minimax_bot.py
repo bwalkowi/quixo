@@ -3,7 +3,8 @@ from enum import Enum
 from collections import OrderedDict
 from typing import NamedTuple, Tuple, Optional
 
-from utils import Mark, Action, get_possible_moves, apply_move, get_winners
+from utils import (Mark, Action, BOARD_SIZE,
+                   get_possible_moves, apply_move, get_winners)
 
 
 MAX_SCORE = 1000
@@ -145,9 +146,9 @@ class Quixo:
         self.max_depth = max_depth
 
     def hash(self, mark: Mark) -> str:
-        board_hash = ''.join(self.board[i][j].value
-                             for i in range(5)
-                             for j in range(5))
+        board_hash = ''.join(cell.value
+                             for row in self.board
+                             for cell in row)
         return mark.value + board_hash
 
     def move(self, row: int, col: int, action: Action, mark: Mark) -> 'Quixo':
@@ -178,9 +179,11 @@ class Quixo:
             p1_mark = self.initial_mark
 
             score = sum(row.count(p1_mark)**3 for row in board)
-            score += sum(sum(row[col] == p1_mark for row in board)**3 for col in range(5))
-            score += sum(board[i][i] == p1_mark for i in range(5))**2
-            score += sum(board[i][4-i] == p1_mark for i in range(5))**2
+            score += sum(sum(row[col] == p1_mark for row in board)**3
+                         for col in range(BOARD_SIZE))
+            score += sum(board[i][i] == p1_mark for i in range(BOARD_SIZE))**2
+            score += sum(board[i][BOARD_SIZE-1-i] == p1_mark
+                         for i in range(BOARD_SIZE))**2
 
         elif len(winners) == 2:
             score = 0
