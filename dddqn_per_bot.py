@@ -211,7 +211,8 @@ def build_model(learning_rate: float = 0.001) -> Model:
     model = Model(input=model_input, output=model_output)
     model.compile(optimizer=RMSprop(lr=learning_rate),
                   loss=tf.losses.huber_loss)
-    # plot_model(model, to_file='model.png')
+    plot_model(model, to_file='model.png',
+               show_shapes=True, show_layer_names=True)
     # print(model.summary())
 
     return model

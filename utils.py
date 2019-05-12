@@ -36,58 +36,36 @@ class Result(Enum):
         return self.name
 
 
-ALL_MOVES = [
-    (0, 0, Action.PUSH_UP),
-    (0, 0, Action.PUSH_LEFT),
-    (0, 1, Action.PUSH_UP),
-    (0, 1, Action.PUSH_LEFT),
-    (0, 1, Action.PUSH_RIGHT),
-    (0, 2, Action.PUSH_UP),
-    (0, 2, Action.PUSH_LEFT),
-    (0, 2, Action.PUSH_RIGHT),
-    (0, 3, Action.PUSH_UP),
-    (0, 3, Action.PUSH_LEFT),
-    (0, 3, Action.PUSH_RIGHT),
-    (0, 4, Action.PUSH_UP),
-    (0, 4, Action.PUSH_RIGHT),
+BOARD_SIZE = 5
+STATE_SPACE_SIZE = 2 * BOARD_SIZE**2
 
-    (1, 0, Action.PUSH_UP),
-    (1, 0, Action.PUSH_DOWN),
-    (1, 0, Action.PUSH_LEFT),
-    (1, 4, Action.PUSH_UP),
-    (1, 4, Action.PUSH_DOWN),
-    (1, 4, Action.PUSH_RIGHT),
+ALL_MOVES = [(0, 0, Action.PUSH_UP),
+             (0, 0, Action.PUSH_LEFT)]
+ALL_MOVES.extend([(0, col, action)
+                  for col in range(1, BOARD_SIZE-1)
+                  for action in (Action.PUSH_LEFT, Action.PUSH_UP,
+                                 Action.PUSH_RIGHT)])
+ALL_MOVES.extend([(0, BOARD_SIZE-1, Action.PUSH_UP),
+                  (0, BOARD_SIZE-1, Action.PUSH_RIGHT)])
 
-    (2, 0, Action.PUSH_UP),
-    (2, 0, Action.PUSH_DOWN),
-    (2, 0, Action.PUSH_LEFT),
-    (2, 4, Action.PUSH_UP),
-    (2, 4, Action.PUSH_DOWN),
-    (2, 4, Action.PUSH_RIGHT),
+for r in range(1, BOARD_SIZE-1):
+    ALL_MOVES.extend([(r, 0, Action.PUSH_UP),
+                      (r, 0, Action.PUSH_DOWN),
+                      (r, 0, Action.PUSH_LEFT),
+                      (r, BOARD_SIZE - 1, Action.PUSH_UP),
+                      (r, BOARD_SIZE - 1, Action.PUSH_DOWN),
+                      (r, BOARD_SIZE - 1, Action.PUSH_RIGHT)])
 
-    (3, 0, Action.PUSH_UP),
-    (3, 0, Action.PUSH_DOWN),
-    (3, 0, Action.PUSH_LEFT),
-    (3, 4, Action.PUSH_UP),
-    (3, 4, Action.PUSH_DOWN),
-    (3, 4, Action.PUSH_RIGHT),
+ALL_MOVES.extend([(BOARD_SIZE-1, 0, Action.PUSH_DOWN),
+                  (BOARD_SIZE-1, 0, Action.PUSH_LEFT)])
+ALL_MOVES.extend([(BOARD_SIZE-1, col, action)
+                  for col in range(1, BOARD_SIZE-1)
+                  for action in (Action.PUSH_LEFT, Action.PUSH_DOWN,
+                                 Action.PUSH_RIGHT)])
+ALL_MOVES.extend([(BOARD_SIZE-1, BOARD_SIZE-1, Action.PUSH_DOWN),
+                  (BOARD_SIZE-1, BOARD_SIZE-1, Action.PUSH_RIGHT)])
 
-    (4, 0, Action.PUSH_DOWN),
-    (4, 0, Action.PUSH_LEFT),
-    (4, 1, Action.PUSH_DOWN),
-    (4, 1, Action.PUSH_LEFT),
-    (4, 1, Action.PUSH_RIGHT),
-    (4, 2, Action.PUSH_DOWN),
-    (4, 2, Action.PUSH_LEFT),
-    (4, 2, Action.PUSH_RIGHT),
-    (4, 3, Action.PUSH_DOWN),
-    (4, 3, Action.PUSH_LEFT),
-    (4, 3, Action.PUSH_RIGHT),
-    (4, 4, Action.PUSH_DOWN),
-    (4, 4, Action.PUSH_RIGHT)
-]
 MOVE_SPACE_SIZE = len(ALL_MOVES)
-STATE_SPACE_SIZE = 50
 
 
 def encode_board(board, mark: Mark, as_batch: bool = True) -> np.ndarray:
@@ -130,13 +108,13 @@ def apply_move(board, row: int, col: int, action: Action, mark: Mark) -> None:
             board[i][col] = board[i-1][col]
         board[0][col] = mark
     elif action == Action.PUSH_UP:
-        for i in range(row, 4):
+        for i in range(row, BOARD_SIZE-1):
             board[i][col] = board[i+1][col]
-        board[4][col] = mark
+        board[BOARD_SIZE-1][col] = mark
     elif action == Action.PUSH_LEFT:
-        for i in range(col, 4):
+        for i in range(col, BOARD_SIZE-1):
             board[row][i] = board[row][i+1]
-        board[row][4] = mark
+        board[row][BOARD_SIZE-1] = mark
     else:
         for i in range(col, 0, -1):
             board[row][i] = board[row][i-1]
@@ -149,21 +127,25 @@ def get_winners(board) -> Set[Mark]:
     # check horizontal
     for row in board:
         mark = row[0]
-        if mark != Mark.EMPTY and row.count(mark) == 5:
+        if mark != Mark.EMPTY and row.count(mark) is BOARD_SIZE:
             winners.add(mark)
 
     # check vertical
-    for col in range(5):
+    for col in range(BOARD_SIZE):
         mark = board[0][col]
-        if mark != Mark.EMPTY and all(board[r][col] == mark for r in range(5)):
+        if mark != Mark.EMPTY and all(board[row][col] is mark
+                                      for row in range(BOARD_SIZE)):
             winners.add(mark)
 
     # check diagonals
-    mark = board[2][2]
-    if mark != Mark.EMPTY:
-        if all(board[i][i] == mark for i in range(5)):
-            winners.add(mark)
-        if all(board[i][4-i] == mark for i in range(5)):
-            winners.add(mark)
+    mark = board[0][0]
+    if mark != mark.EMPTY and all(board[i][i] is mark
+                                  for i in range(BOARD_SIZE)):
+        winners.add(mark)
+
+    mark = board[0][BOARD_SIZE-1]
+    if mark != mark.EMPTY and all(board[i][BOARD_SIZE-1-i] is mark
+                                  for i in range(BOARD_SIZE)):
+        winners.add(mark)
 
     return winners
