@@ -153,7 +153,7 @@ def build_model(learning_rate: float = 0.001) -> Model:
 
     def aggregate(x):
         val, adv = x
-        return val + adv - K.mean(adv, keepdims=True)
+        return val + (adv - K.mean(adv, axis=1, keepdims=True))
 
     model_output = Lambda(aggregate,
                           output_shape=(MOVE_SPACE_SIZE,))([value, advantage])

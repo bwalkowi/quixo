@@ -7,27 +7,45 @@ from utils import (Mark, Action, BOARD_SIZE,
 
 
 class Player:
-    def __init__(self, mark: Mark) -> None:
+    def __init__(self, mark: Mark, *,
+                 eval_rows: bool = True,
+                 eval_cols: bool = False,
+                 eval_diagonals: bool = False) -> None:
         self.mark = mark
+        self.eval_rows = eval_rows
+        self.eval_cols = eval_cols
+        self.eval_diagonals = eval_diagonals
 
     def move(self, board) -> Tuple[int, int, Action]:
         possible_moves = get_possible_moves(board, self.mark)
-        possible_moves.sort(key=lambda x: (evaluate_move(board, self.mark, x),
-                                           random.random()),
-                            reverse=True)
-        return possible_moves[0]
+        possible_moves.sort(key=lambda m: (evaluate_move(board, self.mark, m,
+                                                         self.eval_rows,
+                                                         self.eval_cols,
+                                                         self.eval_diagonals),
+                                           random.random()))
+        return possible_moves[-1]
 
 
-def evaluate_move(board, mark: Mark, move: Tuple[int, int, Action]) -> int:
+def evaluate_move(board,
+                  mark: Mark,
+                  move: Tuple[int, int, Action],
+                  eval_rows: bool = True,
+                  eval_cols: bool = False,
+                  eval_diagonals: bool = False) -> int:
+
     row, col, action = move
     next_board = deepcopy(board)
     apply_move(next_board, row, col, action, mark)
 
-    score = sum(row.count(mark)**3 for row in next_board)
-    score += sum(sum(row[col] is mark for row in next_board)**3
-                 for col in range(BOARD_SIZE))
-    score += sum(next_board[i][i] is mark for i in range(BOARD_SIZE))**2
-    score += sum(next_board[i][BOARD_SIZE-1-i] is mark
-                 for i in range(BOARD_SIZE))**2
+    score = 0
+    if eval_rows:
+        score += sum(row.count(mark)**3 for row in next_board)
+    if eval_cols:
+        score += sum(sum(row[col] is mark for row in next_board)**3
+                     for col in range(BOARD_SIZE))
+    if eval_diagonals:
+        score += sum(next_board[i][i] is mark for i in range(BOARD_SIZE))**2
+        score += sum(next_board[i][BOARD_SIZE-1-i] is mark
+                     for i in range(BOARD_SIZE))**2
 
     return score
